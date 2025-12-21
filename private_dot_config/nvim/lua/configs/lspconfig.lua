@@ -5,17 +5,20 @@ local servers = {
   "cssls",
   "gopls",
   "typos_lsp",
+  "clangd",
+  "pyright",
+  "jq-lsp",
 }
-require("lspconfig").clangd.setup {
+vim.lsp.config('clangd', {
   init_options = {
     -- fallbackFlags = { '--std=c++20' }
   },
-}
-require("lspconfig").typos_lsp.setup({
+})
+vim.lsp.config('typos_lsp', {
   cmd_env = { RUST_LOG = "error" },
   init_options = {
     config = '~/code/typos-lsp/crates/typos-lsp/tests/typos.toml',
-    diagnosticSeverity = "Error"
+    diagnosticSeverity = "Warning"
   }
 })
 vim.lsp.set_log_level("debug")

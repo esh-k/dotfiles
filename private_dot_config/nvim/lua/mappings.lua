@@ -17,9 +17,20 @@ map("n", "k", "gk", { desc = "move up between wrapped lines" })
 map("v", "j", "gj", { desc = "move down between wrapped lines" })
 map("v", "k", "gk", { desc = "move up between wrapped lines" })
 
+-- Override Tab mapping to use different keys so C-i can work for jump forward
+-- C-i and Tab are the same keycode, so we need to change Tab to something else
+if require("nvconfig").ui.tabufline.enabled then
+  -- Unmap Tab from buffer navigation
+  vim.keymap.del("n", "<Tab>")
+  vim.keymap.del("n", "<S-Tab>")
+end
+
 vim.keymap.set("n", "<C-M-f>",
   function()
-    vim.lsp.buf.format({async=true})
+    require("conform").format({
+    async = true,
+    lsp_fallback = true,
+  })
   end,
   { noremap = true, silent=true}
 )
