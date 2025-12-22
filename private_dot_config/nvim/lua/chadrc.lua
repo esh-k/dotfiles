@@ -16,7 +16,8 @@ M.base46 = {
 M.term = { float = { true } }
 M.nvimtree = {
   view = {
-    preserve_window_proportions = true
+    preserve_window_proportions = true,
+    adaptive_size = true,
   }
 }
 -- M.nvdash = { load_on_startup = true }
