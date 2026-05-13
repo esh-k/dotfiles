@@ -8,6 +8,7 @@ local servers = {
   "clangd",
   "pyright",
   "jq-lsp",
+  "slqfluff",
 }
 vim.lsp.config('clangd', {
   init_options = {
