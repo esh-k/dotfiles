@@ -116,7 +116,11 @@ return {
     },
   },
   cmd = { "CsvViewEnable", "CsvViewDisable", "CsvViewToggle" },
-  }
+  },
+  {
+    "tpope/vim-obsession",
+    lazy = false, -- Ensures it loads immediately to handle `nvim -S` commands
+  },
   -- test new blink
   -- { import = "nvchad.blink.lazyspec" },
 
@@ -129,9 +133,5 @@ return {
   -- 		},
   -- 	},
   -- },
-  {
-    'tpope/vim-obsession',
-    lazy = false,
-  },
 
 }
