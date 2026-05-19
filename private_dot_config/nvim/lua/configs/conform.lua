@@ -21,7 +21,7 @@ local options = {
 			args = { "-c", '{"keywordCase": "upper", "tabWidth": "4"}' },
 		},
 		shfmt = {
-			prepend_args = { "-i", "4", "-ci", "-ln=auto" },
+			append_args = { "-i", "4", "-ci", "-ln=auto" },
 		},
 	},
 
