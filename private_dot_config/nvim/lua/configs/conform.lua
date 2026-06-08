@@ -12,6 +12,7 @@ local options = {
 		sh = { "shfmt" },
 		bash = { "shfmt" },
 		zsh = { "shfmt" },
+    cpp = { "clang-format" }
 		-- css = { "prettier" },
 		-- html = { "prettier" },
 	},
