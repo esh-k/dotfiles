@@ -1,0 +1,49 @@
+# clipboard copy
+alias clipcopy='xclip -selection clipboard'
+
+# conda alias
+function condact() {
+    source ~/miniconda3/bin/activate
+    conda activate "$1"
+}
+
+function condenv() {
+    conda activate "$1"
+}
+
+# opam env switch
+function opamswitch() {
+    eval $(opam env --set-switch --switch="$1")
+}
+
+# activate python venv shortcut
+function activate-venv() {
+    venv_dirs=("venv" ".venv")
+    if [ "$#" -eq 1 ]; then
+        venv_dir="$1"
+    fi
+    cur_dir=$(pwd)
+    while [[ "$cur_dir" != "/" && "$cur_dir" != "$HOME" ]]; do
+        for venv_dir in "${venv_dirs[@]}"; do
+            venv_path="${cur_dir}/${venv_dir}/bin/activate"
+            if [ -f "$venv_path" ]; then
+                source "$venv_path"
+                return 0
+            fi
+        done
+        cur_dir=$(dirname "$cur_dir")
+    done
+    echo "Venv ${venv_dirs} doesn't exist"
+    return 1
+}
+
+# switch between cuda versions
+function cuda-version() {
+    version=$1
+    if [ ! -d "/usr/local/cuda-${version}" ]; then
+        echo "Invalid cuda version"
+        return
+    fi
+    export CUDA_VERSION="-${version}"
+    source ~/.bashrc
+}
