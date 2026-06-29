@@ -1,5 +1,3 @@
--- Debug Adapter Protocol: nvim-dap + UI + virtual text, wired for C/C++/Rust
--- via codelldb (installed through Mason).
 return {
   {
     "mfussenegger/nvim-dap",
@@ -8,73 +6,63 @@ return {
       "theHamsta/nvim-dap-virtual-text",
     },
     keys = {
-      { "<F5>", function() require("dap").continue() end, desc = "Debug: continue / start" },
-      { "<F10>", function() require("dap").step_over() end, desc = "Debug: step over" },
-      { "<F11>", function() require("dap").step_into() end, desc = "Debug: step into" },
-      { "<F12>", function() require("dap").step_out() end, desc = "Debug: step out" },
-      { "<leader>db", function() require("dap").toggle_breakpoint() end, desc = "Debug: toggle breakpoint" },
-      { "<leader>dB", function() require("dap").set_breakpoint() end, desc = "Debug: set breakpoint" },
+      { "<F5>", function() require("dap").continue() end, desc = "debug: continue/start" },
+      { "<F10>", function() require("dap").step_over() end, desc = "debug: step over" },
+      { "<F11>", function() require("dap").step_into() end, desc = "debug: step into" },
+      { "<F12>", function() require("dap").step_out() end, desc = "debug: step out" },
+      { "<leader>db", function() require("dap").toggle_breakpoint() end, desc = "debug: toggle breakpoint" },
       {
-        "<leader>dl",
-        function() require("dap").set_breakpoint(nil, nil, vim.fn.input "Log point message: ") end,
-        desc = "Debug: log point",
-      },
-      { "<leader>dc", function() require("dap").continue() end, desc = "Debug: continue" },
-      { "<leader>dr", function() require("dap").repl.toggle() end, desc = "Debug: toggle REPL" },
-      { "<leader>dL", function() require("dap").run_last() end, desc = "Debug: run last" },
-      { "<leader>dt", function() require("dap").terminate() end, desc = "Debug: terminate" },
-      { "<leader>du", function() require("dapui").toggle() end, desc = "Debug: toggle UI" },
-      { "<leader>de", function() require("dapui").eval() end, desc = "Debug: eval", mode = { "n", "v" } },
-      { "<leader>dh", function() require("dap.ui.widgets").hover() end, desc = "Debug: hover", mode = { "n", "v" } },
-      {
-        "<leader>df",
+        "<leader>dB",
         function()
-          local w = require "dap.ui.widgets"
-          w.centered_float(w.frames)
+          require("dap").set_breakpoint(vim.fn.input("Breakpoint condition: "))
         end,
-        desc = "Debug: frames",
+        desc = "debug: conditional breakpoint",
       },
       {
-        "<leader>ds",
+        "<leader>dp",
         function()
-          local w = require "dap.ui.widgets"
-          w.centered_float(w.scopes)
+          require("dap").set_breakpoint(nil, nil, vim.fn.input("Log point message: "))
         end,
-        desc = "Debug: scopes",
+        desc = "debug: log point",
+      },
+      { "<leader>dc", function() require("dap").continue() end, desc = "debug: continue" },
+      { "<leader>dr", function() require("dap").repl.toggle() end, desc = "debug: toggle REPL" },
+      { "<leader>dl", function() require("dap").run_last() end, desc = "debug: run last" },
+      { "<leader>dt", function() require("dap").terminate() end, desc = "debug: terminate" },
+      { "<leader>du", function() require("dapui").toggle() end, desc = "debug: toggle UI" },
+      {
+        "<leader>de",
+        function() require("dapui").eval() end,
+        mode = { "n", "v" },
+        desc = "debug: eval expression",
       },
     },
     config = function()
-      local dap = require "dap"
-      local dapui = require "dapui"
+      local dap = require("dap")
+      local dapui = require("dapui")
 
       dapui.setup()
-      require("nvim-dap-virtual-text").setup {}
+      require("nvim-dap-virtual-text").setup()
 
-      -- Breakpoint signs
-      vim.fn.sign_define("DapBreakpoint", { text = "●", texthl = "DiagnosticError", linehl = "", numhl = "" })
-      vim.fn.sign_define("DapStopped", { text = "▶", texthl = "DiagnosticWarn", linehl = "Visual", numhl = "" })
-
-      -- Auto open/close the UI around a debug session
+      -- auto open/close the UI
       dap.listeners.before.attach.dapui_config = function() dapui.open() end
       dap.listeners.before.launch.dapui_config = function() dapui.open() end
       dap.listeners.before.event_terminated.dapui_config = function() dapui.close() end
       dap.listeners.before.event_exited.dapui_config = function() dapui.close() end
 
-      -- codelldb adapter (path from the Mason install) ----------------------
-      local codelldb = vim.fn.stdpath "data" .. "/mason/bin/codelldb"
+      -- codelldb (installed via Mason)
       dap.adapters.codelldb = {
         type = "server",
         port = "${port}",
         executable = {
-          command = codelldb,
+          command = vim.fn.stdpath("data") .. "/mason/bin/codelldb",
           args = { "--port", "${port}" },
         },
       }
 
-      -- C / C++ / Rust configurations ---------------------------------------
       local lldb_cfg = {
         {
-          name = "Launch (codelldb)",
+          name = "Launch file",
           type = "codelldb",
           request = "launch",
           program = function()
@@ -82,7 +70,9 @@ return {
           end,
           cwd = "${workspaceFolder}",
           stopOnEntry = false,
-          args = {},
+          -- NOTE: codelldb defaults to runInTerminal, which can't run under
+          -- --headless. For headless DAP testing only, add: terminal = "console".
+          -- Kept as default (integrated terminal) for normal interactive use.
         },
       }
       dap.configurations.c = lldb_cfg

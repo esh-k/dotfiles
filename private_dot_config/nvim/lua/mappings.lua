@@ -1,45 +1,36 @@
 local map = vim.keymap.set
 
--- General -------------------------------------------------------------------
-map("i", "jk", "<ESC>", { desc = "Exit insert mode" })
-map("n", "<Esc>", "<cmd>nohlsearch<cr>", { desc = "Clear search highlight" })
-map("n", "<leader>w", "<cmd>w<cr>", { desc = "Save file" })
--- Ctrl-S to save in normal/insert/visual (stays in the current mode)
-map({ "n", "i", "v" }, "<C-s>", "<cmd>w<cr>", { desc = "Save file" })
-map("n", "<leader>q", "<cmd>q<cr>", { desc = "Quit window" })
+-- escape from insert
+map("i", "jk", "<ESC>", { desc = "escape insert mode" })
 
--- Move through wrapped lines naturally
-map({ "n", "v" }, "j", "gj", { desc = "Down (wrapped lines)" })
-map({ "n", "v" }, "k", "gk", { desc = "Up (wrapped lines)" })
+-- tmux-aware window navigation
+map("n", "<C-h>", "<cmd>TmuxNavigateLeft<CR>", { desc = "window left" })
+map("n", "<C-l>", "<cmd>TmuxNavigateRight<CR>", { desc = "window right" })
+map("n", "<C-j>", "<cmd>TmuxNavigateDown<CR>", { desc = "window down" })
+map("n", "<C-k>", "<cmd>TmuxNavigateUp<CR>", { desc = "window up" })
 
--- Keep selection when indenting
-map("v", "<", "<gv", { desc = "Indent left" })
-map("v", ">", ">gv", { desc = "Indent right" })
+-- move through wrapped lines naturally
+map({ "n", "v" }, "j", "gj", { desc = "down (wrapped lines)" })
+map({ "n", "v" }, "k", "gk", { desc = "up (wrapped lines)" })
 
--- Tmux-aware window navigation (handled by vim-tmux-navigator) ---------------
-map("n", "<C-h>", "<cmd>TmuxNavigateLeft<cr>", { desc = "Window/pane left" })
-map("n", "<C-l>", "<cmd>TmuxNavigateRight<cr>", { desc = "Window/pane right" })
-map("n", "<C-j>", "<cmd>TmuxNavigateDown<cr>", { desc = "Window/pane down" })
-map("n", "<C-k>", "<cmd>TmuxNavigateUp<cr>", { desc = "Window/pane up" })
+-- save
+map({ "n", "i", "v" }, "<C-s>", "<cmd>w<CR>", { desc = "save file" })
 
--- Buffers / tabs ------------------------------------------------------------
--- (Tab is left unmapped so it keeps working as <C-i> / jump-forward.)
-map("n", "]b", "<cmd>BufferLineCycleNext<cr>", { desc = "Next buffer (tab)" })
-map("n", "[b", "<cmd>BufferLineCyclePrev<cr>", { desc = "Previous buffer (tab)" })
-map("n", "<leader>x", "<cmd>bdelete<cr>", { desc = "Close buffer" })
+-- clear search highlight
+map("n", "<Esc>", "<cmd>nohlsearch<CR>", { desc = "clear search highlight" })
 
--- Comments (built-in gc/gcc commenting) -------------------------------------
-map("n", "<leader>/", "gcc", { remap = true, desc = "Toggle comment line" })
-map("x", "<leader>/", "gc", { remap = true, desc = "Toggle comment selection" })
+-- sessions (vim-obsession)
+map("n", "<leader>so", "<cmd>Obsession<CR>", { desc = "toggle session (Obsession)" })
 
--- Sessions (vim-obsession) --------------------------------------------------
-map("n", "<leader>so", "<cmd>Obsession<cr>", { desc = "Toggle session tracking (Obsession)" })
+-- comment toggle (built-in gc/gcc). remap = true so the <Plug> operator fires.
+map("n", "<leader>/", "gcc", { remap = true, desc = "toggle comment" })
+map("v", "<leader>/", "gc", { remap = true, desc = "toggle comment" })
 
--- Formatting (conform) ------------------------------------------------------
-map("n", "<C-M-f>", function()
-  require("conform").format { async = true, lsp_format = "fallback" }
-end, { desc = "Format buffer" })
-map("n", "<leader>cf", function()
-  require("conform").format { async = true, lsp_format = "fallback" }
-end, { desc = "Format buffer" })
-map("n", "<leader>uf", "<cmd>FormatToggle<cr>", { desc = "Toggle autoformat (session)" })
+-- formatting (conform)
+map({ "n", "v" }, "<C-M-f>", function()
+  require("conform").format({ async = true, lsp_fallback = true })
+end, { desc = "format buffer/selection" })
+map({ "n", "v" }, "<leader>cf", function()
+  require("conform").format({ async = true, lsp_fallback = true })
+end, { desc = "format buffer/selection" })
+map("n", "<leader>uf", "<cmd>FormatToggle<CR>", { desc = "toggle format-on-save (session)" })

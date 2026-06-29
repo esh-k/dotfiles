@@ -1,140 +1,118 @@
--- Browsable "window" over the persisted Telescope history (all picker types).
+-- A browsable/fuzzy-searchable picker over ALL past Telescope searches.
 --
--- telescope-smart-history only provides a history *backend* (cycled with
--- <C-Up>/<C-Down> inside a prompt) -- it has no picker to view the list. This
--- module reads the same sqlite DB and presents every past search in a Telescope
--- window you can fuzzy-filter; selecting one re-runs it in the right picker.
+-- telescope-smart-history ships only a sqlite *backend* (no picker of its own),
+-- so this reads the same DB (stdpath('data')/telescope_history.sqlite3) and
+-- builds a picker. Each row shows a type tag + the query; <CR> re-runs it in the
+-- matching picker (grep -> live_grep_args, files -> find_files, ...).
+--
+-- NOTE: smart_history holds its sqlite connection open, so a search made in the
+-- *current* session shows up here only after a restart; use <C-Up>/<C-Down> in a
+-- prompt to recall same-session searches.
+
 local M = {}
 
-local DB = vim.fn.stdpath "data" .. "/telescope_history.sqlite3"
-
--- smart_history stores content wrapped as __ESCAPED__'<content>'
-local function unescape(s)
-  return (s:gsub("^__ESCAPED__'(.*)'$", "%1"))
+local function db_path()
+  return vim.fn.stdpath("data") .. "/telescope_history.sqlite3"
 end
 
--- Short, friendly label shown in the type column.
-local function kind(title)
-  local t = (title or ""):lower()
-  if t:find "grep" then return "grep" end
-  if t:find "old" or t:find "recent" then return "recent" end
-  if t:find "file" then return "files" end
-  if t:find "buffer" then return "buffers" end
-  if t:find "help" then return "help" end
-  if t:find "key" then return "keymaps" end
-  if t:find "diagnostic" then return "diag" end
-  if t:find "mark" then return "marks" end
-  return (title or "?"):lower()
-end
-
--- Re-open the picker a history entry came from, pre-filled with its query.
-local function rerun(title, query)
-  local t = (title or ""):lower()
-  local tb = require "telescope.builtin"
-  if t:find "grep" then
-    require("telescope").extensions.live_grep_args.live_grep_args { default_text = query }
-  elseif t:find "old" or t:find "recent" then
-    tb.oldfiles { default_text = query }
-  elseif t:find "file" then
-    tb.find_files { default_text = query }
-  elseif t:find "buffer" then
-    tb.buffers { default_text = query }
-  elseif t:find "help" then
-    tb.help_tags { default_text = query }
-  elseif t:find "key" then
-    tb.keymaps { default_text = query }
-  elseif t:find "diagnostic" then
-    tb.diagnostics { default_text = query }
-  elseif t:find "mark" then
-    tb.marks { default_text = query }
+-- map a stored picker tag to a runnable picker
+local function rerun(tag, query)
+  tag = (tag or ""):lower()
+  local builtin = require("telescope.builtin")
+  if tag:find("grep") then
+    require("telescope").extensions.live_grep_args.live_grep_args({ default_text = query })
+  elseif tag:find("file") then
+    builtin.find_files({ default_text = query })
+  elseif tag:find("buffer") then
+    builtin.buffers({ default_text = query })
+  elseif tag:find("help") then
+    builtin.help_tags({ default_text = query })
+  elseif tag:find("oldfile") then
+    builtin.oldfiles({ default_text = query })
+  elseif tag:find("keymap") then
+    builtin.keymaps({ default_text = query })
   else
-    -- unknown picker type: most useful generic fallback is a content grep
-    require("telescope").extensions.live_grep_args.live_grep_args { default_text = query }
+    require("telescope").extensions.live_grep_args.live_grep_args({ default_text = query })
   end
 end
 
-function M.history()
+-- read rows defensively: the smart_history schema stores a query column and a
+-- picker column, but column names have varied across versions, so detect them.
+local function read_rows()
   local ok, sqlite = pcall(require, "sqlite")
   if not ok then
-    vim.notify("sqlite.lua not available; search history needs it.", vim.log.levels.WARN)
-    return
+    vim.notify("[search_history] sqlite.lua not available", vim.log.levels.ERROR)
+    return nil
   end
-  if vim.fn.filereadable(DB) == 0 then
-    vim.notify("No search history yet -- use a Telescope picker and select a result first.", vim.log.levels.INFO)
-    return
-  end
-
-  local db = sqlite.new(DB)
-  db:open()
-  local rows = db:eval "select content, picker from history"
-  db:close()
-
-  -- eval returns `true` when there are no rows, or a single row table when 1.
-  if type(rows) ~= "table" then
-    rows = {}
-  elseif rows.content ~= nil then
-    rows = { rows }
+  local path = db_path()
+  if vim.fn.filereadable(path) == 0 then
+    vim.notify("[search_history] no history DB yet: " .. path, vim.log.levels.WARN)
+    return {}
   end
 
-  -- newest first, de-duplicated on (picker + query)
-  local seen, items = {}, {}
-  for i = #rows, 1, -1 do
-    local query = unescape(rows[i].content)
-    local title = rows[i].picker or ""
-    local key = title .. "\0" .. query
-    if query ~= "" and not seen[key] then
-      seen[key] = true
-      items[#items + 1] = { title = title, query = query, kind = kind(title) }
+  local db = sqlite({ uri = path })
+  local raw
+  pcall(function()
+    raw = db:eval("select * from history order by id desc")
+  end)
+  pcall(function()
+    db:close()
+  end)
+  if type(raw) ~= "table" then
+    return {}
+  end
+
+  local rows = {}
+  for _, r in ipairs(raw) do
+    local query = r.query or r.cmd or r.prompt or r.line
+    local tag = r.picker or r.type or r.kind or "grep"
+    if type(query) == "string" and query ~= "" then
+      rows[#rows + 1] = { query = query, tag = tostring(tag) }
     end
   end
+  return rows
+end
 
-  if #items == 0 then
-    vim.notify("No search history yet.", vim.log.levels.INFO)
+function M.open()
+  local rows = read_rows()
+  if not rows then
     return
   end
 
-  local pickers = require "telescope.pickers"
-  local finders = require "telescope.finders"
+  local pickers = require("telescope.pickers")
+  local finders = require("telescope.finders")
   local conf = require("telescope.config").values
-  local actions = require "telescope.actions"
-  local astate = require "telescope.actions.state"
-  local entry_display = require "telescope.pickers.entry_display"
+  local actions = require("telescope.actions")
+  local action_state = require("telescope.actions.state")
+  local entry_display = require("telescope.pickers.entry_display")
 
-  local displayer = entry_display.create {
-    separator = "  ",
-    items = {
-      { width = 9 }, -- kind column (grep / files / buffers / ...)
-      { remaining = true }, -- the query
-    },
-  }
-
-  local make_display = function(entry)
-    return displayer {
-      { entry.value.kind, "TelescopeResultsComment" },
-      entry.value.query,
-    }
-  end
+  local displayer = entry_display.create({
+    separator = " ",
+    items = { { width = 12 }, { remaining = true } },
+  })
 
   pickers
     .new({}, {
-      prompt_title = "Search History — <CR> to re-run",
-      finder = finders.new_table {
-        results = items,
-        entry_maker = function(item)
+      prompt_title = "Telescope Search History",
+      finder = finders.new_table({
+        results = rows,
+        entry_maker = function(row)
           return {
-            value = item,
-            display = make_display,
-            ordinal = item.kind .. " " .. item.query, -- fuzzy match type + query
+            value = row,
+            ordinal = row.tag .. " " .. row.query,
+            display = function(e)
+              return displayer({ { "[" .. e.value.tag .. "]", "TelescopeResultsComment" }, e.value.query })
+            end,
           }
         end,
-      },
-      sorter = conf.generic_sorter {},
-      attach_mappings = function(bufnr)
+      }),
+      sorter = conf.generic_sorter({}),
+      attach_mappings = function(prompt_bufnr)
         actions.select_default:replace(function()
-          local entry = astate.get_selected_entry()
-          actions.close(bufnr)
+          local entry = action_state.get_selected_entry()
+          actions.close(prompt_bufnr)
           if entry and entry.value then
-            rerun(entry.value.title, entry.value.query)
+            rerun(entry.value.tag, entry.value.query)
           end
         end)
         return true
@@ -142,8 +120,5 @@ function M.history()
     })
     :find()
 end
-
--- Backwards-compatible alias.
-M.grep_history = M.history
 
 return M
