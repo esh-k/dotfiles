@@ -114,7 +114,22 @@ return {
 			indent = { enable = true },
 		},
 		config = function(_, opts)
-			require("nvim-treesitter.configs").setup(opts)
+			-- This config targets the `master` branch API. If a machine somehow has
+			-- the `main`-branch rewrite checked out (its default branch), the classic
+			-- `nvim-treesitter.configs` module is gone — fail loudly with a fix hint
+			-- instead of crashing the whole config load.
+			local ok, configs = pcall(require, "nvim-treesitter.configs")
+			if not ok then
+				vim.schedule(function()
+					vim.notify(
+						"nvim-treesitter is on the wrong branch (expected `master`).\n"
+							.. "Run `:Lazy restore nvim-treesitter` to sync it to the pinned commit.",
+						vim.log.levels.ERROR
+					)
+				end)
+				return
+			end
+			configs.setup(opts)
 			require("configs.treesitter_fix")
 		end,
 	},
@@ -131,6 +146,12 @@ return {
 		config = function()
 			require("nvim-tree").setup({
 				view = { preserve_window_proportions = true },
+				-- Jump to & highlight the current buffer's file in the tree whenever
+				-- focus moves to nvim-tree (and on buffer switches).
+				update_focused_file = {
+					enable = true,
+					update_root = true,
+				},
 				on_attach = function(bufnr)
 					local api = require("nvim-tree.api")
 					api.config.mappings.default_on_attach(bufnr)
@@ -144,11 +165,11 @@ return {
 							nowait = true,
 						}
 					end
-					-- h/l are unused by nvim-tree defaults; use them to scroll horizontally
-					-- so long file names hidden to the right become visible. (arrows / <C-arrows>
-					-- avoided since terminals/tmux often intercept them.)
-					vim.keymap.set("n", "l", "zL", o("scroll right (half width)"))
-					vim.keymap.set("n", "h", "zH", o("scroll left (half width)"))
+					-- M-h/M-l scroll the tree horizontally so long file names hidden to the
+					-- right become visible. (plain h/l are left to nvim-tree's defaults;
+					-- arrows / <C-arrows> avoided since terminals/tmux often intercept them.)
+					vim.keymap.set("n", "<M-l>", "zL", o("scroll right (half width)"))
+					vim.keymap.set("n", "<M-h>", "zH", o("scroll left (half width)"))
 					vim.keymap.set("n", "<End>", "150zl", o("scroll to end of name"))
 					vim.keymap.set("n", "<Home>", "150zh", o("scroll to start of name"))
 
