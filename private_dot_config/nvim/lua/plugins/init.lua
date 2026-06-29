@@ -1,151 +1,185 @@
--- Core / UI / editing plugins. LSP, Telescope and DAP live in sibling files.
 return {
-  -- Common lua deps
-  { "nvim-lua/plenary.nvim", lazy = true },
-  { "nvim-tree/nvim-web-devicons", lazy = true },
+	-- Theme: catppuccin (mocha) with transparency, matching the old chadrc.
+	{
+		"catppuccin/nvim",
+		name = "catppuccin",
+		lazy = false,
+		priority = 1000,
+		opts = {
+			flavour = "mocha",
+			transparent_background = false,
+			integrations = {
+				gitsigns = true,
+				treesitter = true,
+				nvimtree = true,
+				telescope = true,
+				which_key = true,
+				mason = true,
+				dap = true,
+				dap_ui = true,
+				blink_cmp = true,
+				native_lsp = { enabled = true },
+			},
+		},
+		config = function(_, opts)
+			require("catppuccin").setup(opts)
+			vim.cmd.colorscheme("catppuccin")
+		end,
+	},
 
-  -- Theme ------------------------------------------------------------------
-  {
-    "catppuccin/nvim",
-    name = "catppuccin",
-    priority = 1000, -- load before everything so other plugins pick up colors
-    config = function()
-      require("catppuccin").setup {
-        flavour = "mocha",
-        transparent_background = false, -- matches old config (transparency = true)
-        integrations = {
-          telescope = true,
-          which_key = true,
-          gitsigns = true,
-          treesitter = true,
-          mason = true,
-          dap = true,
-          dap_ui = true,
-          native_lsp = { enabled = true },
-          cmp = true,
-        },
-      }
-      vim.cmd.colorscheme "catppuccin"
-    end,
-  },
+	-- Tmux-aware navigation (paired with the <C-hjkl> maps in mappings.lua)
+	{ "christoomey/vim-tmux-navigator", lazy = false },
 
-  -- Tmux-aware navigation (C-h/j/k/l move across vim splits AND tmux panes) --
-  {
-    "christoomey/vim-tmux-navigator",
-    cmd = {
-      "TmuxNavigateLeft",
-      "TmuxNavigateRight",
-      "TmuxNavigateUp",
-      "TmuxNavigateDown",
-    },
-  },
+	-- Session save/restore. lazy = false so `nvim -S Session.vim` works.
+	{ "tpope/vim-obsession", lazy = false },
 
-  -- Sessions: :Obsession writes/updates a Session.vim that `nvim -S` restores --
-  {
-    "tpope/vim-obsession",
-    lazy = false,
-  },
+	-- Cheat sheet / multi-key hint popups
+	{
+		"folke/which-key.nvim",
+		event = "VeryLazy",
+		opts = {
+			preset = "modern",
+			spec = {
+				{ "<leader>c", group = "code" },
+				{ "<leader>f", group = "find (telescope)" },
+				{ "<leader>s", group = "search / replace / history" },
+				{ "<leader>m", group = "molten / markdown" },
+				{ "<leader>d", group = "debug" },
+				{ "<leader>u", group = "toggles" },
+				{ "<leader>t", group = "trouble" },
+			},
+		},
+		keys = {
+			{
+				"<leader>?",
+				function()
+					require("which-key").show({ global = true })
+				end,
+				desc = "Cheat sheet (all keybindings)",
+			},
+		},
+	},
 
-  -- Cheat sheet + multi-key hints (replaces NvChad's cheatsheet/which-key) ---
-  {
-    "folke/which-key.nvim",
-    event = "VeryLazy",
-    config = function()
-      local wk = require "which-key"
-      wk.setup {
-        preset = "modern",
-        delay = 300,
-        spec = {
-          { "<leader>f", group = "find (telescope)" },
-          { "<leader>s", group = "search / session" },
-          { "<leader>d", group = "debug" },
-          { "<leader>t", group = "trouble" },
-          { "<leader>c", group = "code" },
-          { "<leader>u", group = "toggle / ui" },
-          { "<leader>g", group = "git" },
-          { "<leader>m", group = "molten / jupyter" },
-        },
-      }
-      -- Full cheat sheet of every mapping
-      vim.keymap.set("n", "<leader>?", function()
-        wk.show { global = true }
-      end, { desc = "Cheat sheet (all keymaps)" })
-    end,
-  },
+	-- Statusline (shows Obsession status)
+	{
+		"nvim-lualine/lualine.nvim",
+		event = "VeryLazy",
+		dependencies = { "nvim-tree/nvim-web-devicons" },
+		opts = {
+			options = {
+				theme = "catppuccin-mocha",
+				globalstatus = true,
+			},
+			sections = {
+				lualine_x = { "ObsessionStatus", "encoding", "fileformat", "filetype" },
+			},
+		},
+	},
 
-  -- Statusline (NvChad provided one; lualine replaces it) -------------------
-  {
-    "nvim-lualine/lualine.nvim",
-    event = "VeryLazy",
-    opts = {
-      options = {
-        -- catppuccin ships per-flavour lualine themes (catppuccin-<flavour>);
-        -- there is no plain "catppuccin" theme, so name the flavour explicitly.
-        theme = "catppuccin-mocha",
-        globalstatus = true,
-        section_separators = "",
-        component_separators = "|",
-      },
-      sections = {
-        lualine_x = { "obsession", "encoding", "fileformat", "filetype" },
-      },
-    },
-  },
+	-- Git signs
+	{
+		"lewis6991/gitsigns.nvim",
+		event = { "BufReadPre", "BufNewFile" },
+		opts = {},
+	},
 
-  -- Git signs in the gutter -------------------------------------------------
-  {
-    "lewis6991/gitsigns.nvim",
-    event = { "BufReadPre", "BufNewFile" },
-    opts = {},
-  },
+	-- Treesitter (frozen master branch + 0.12 compat shim)
+	{
+		"nvim-treesitter/nvim-treesitter",
+		branch = "master",
+		build = ":TSUpdate",
+		event = { "BufReadPre", "BufNewFile" },
+		opts = {
+			ensure_installed = {
+				"lua",
+				"vim",
+				"vimdoc",
+				"c",
+				"cpp",
+				"go",
+				"python",
+				"bash",
+				"json",
+				"yaml",
+				"markdown",
+				"markdown_inline",
+				"latex",
+				"html",
+			},
+			highlight = {
+				enable = true,
+				-- VimTeX owns .tex highlighting/conceal
+				disable = { "latex" },
+			},
+			indent = { enable = true },
+		},
+		config = function(_, opts)
+			require("nvim-treesitter.configs").setup(opts)
+			require("configs.treesitter_fix")
+		end,
+	},
 
-  -- Syntax / highlighting ---------------------------------------------------
-  {
-    "nvim-treesitter/nvim-treesitter",
-    branch = "master",
-    build = ":TSUpdate",
-    event = { "BufReadPost", "BufNewFile" },
-    config = function()
-      require("nvim-treesitter.configs").setup {
-        ensure_installed = {
-          "c",
-          "cpp",
-          "lua",
-          "vim",
-          "vimdoc",
-          "python",
-          "go",
-          "bash",
-          "json",
-          "markdown",
-          "markdown_inline",
-          "latex",
-          "html",
-          "yaml", -- render-markdown + math
-        },
-        auto_install = true,
-        -- VimTeX owns .tex highlighting/conceal, so skip the treesitter latex
-        -- highlighter there (render-markdown still uses the latex parser for math
-        -- inside markdown).
-        highlight = { enable = true, disable = { "latex" } },
-        indent = { enable = true },
-      }
-      -- nvim-treesitter master branch ships query directives that are broken on
-      -- Neovim 0.12 (array vs single-node match) and crash injection parsing
-      -- (e.g. markdown code fences). Override them with compatible versions.
-      pcall(require, "nvim-treesitter.query_predicates") -- ensure originals registered
-      require("configs.treesitter_fix").apply()
-    end,
-  },
+	-- File tree with horizontal scrolling for overflowing names
+	{
+		"nvim-tree/nvim-tree.lua",
+		cmd = { "NvimTreeToggle", "NvimTreeFocus", "NvimTreeFindFile" },
+		dependencies = { "nvim-tree/nvim-web-devicons" },
+		keys = {
+			{ "<C-n>", "<cmd>NvimTreeToggle<CR>", desc = "toggle file tree" },
+			{ "<leader>e", "<cmd>NvimTreeFocus<CR>", desc = "focus file tree" },
+		},
+		config = function()
+			require("nvim-tree").setup({
+				view = { preserve_window_proportions = true },
+				on_attach = function(bufnr)
+					local api = require("nvim-tree.api")
+					api.config.mappings.default_on_attach(bufnr)
 
-  -- Diagnostics list --------------------------------------------------------
-  {
-    "folke/trouble.nvim",
-    cmd = "Trouble",
-    opts = {},
-    keys = {
-      { "<leader>tx", "<cmd>Trouble diagnostics toggle<cr>", desc = "Diagnostics (Trouble)" },
-      { "<leader>tX", "<cmd>Trouble diagnostics toggle filter.buf=0<cr>", desc = "Buffer diagnostics (Trouble)" },
-    },
-  },
+					local function o(desc)
+						return {
+							desc = "nvim-tree: " .. desc,
+							buffer = bufnr,
+							noremap = true,
+							silent = true,
+							nowait = true,
+						}
+					end
+					-- h/l are unused by nvim-tree defaults; use them to scroll horizontally
+					-- so long file names hidden to the right become visible. (arrows / <C-arrows>
+					-- avoided since terminals/tmux often intercept them.)
+					vim.keymap.set("n", "l", "zL", o("scroll right (half width)"))
+					vim.keymap.set("n", "h", "zH", o("scroll left (half width)"))
+					vim.keymap.set("n", "<End>", "150zl", o("scroll to end of name"))
+					vim.keymap.set("n", "<Home>", "150zh", o("scroll to start of name"))
+
+					-- nvim-tree overwrites window opts post-attach, so set them deferred.
+					-- virtualedit=all is REQUIRED: otherwise zl/zh refuse to scroll while
+					-- the cursor sits on a short entry (Vim keeps the cursor on screen).
+					vim.schedule(function()
+						vim.wo.wrap = false
+						vim.wo.sidescrolloff = 0
+						vim.wo.virtualedit = "all"
+					end)
+				end,
+			})
+		end,
+	},
+
+	-- Diagnostics / quickfix viewer
+	{
+		"folke/trouble.nvim",
+		cmd = "Trouble",
+		opts = {},
+		keys = {
+			{ "<leader>tx", "<cmd>Trouble diagnostics toggle<cr>", desc = "Diagnostics (Trouble)" },
+			{ "<leader>tX", "<cmd>Trouble diagnostics toggle filter.buf=0<cr>", desc = "Buffer Diagnostics (Trouble)" },
+			{
+				"<leader>tcl",
+				"<cmd>Trouble lsp toggle focus=false win.position=right<cr>",
+				desc = "LSP refs (Trouble)",
+			},
+			{ "<leader>txQ", "<cmd>Trouble qflist toggle<cr>", desc = "Quickfix (Trouble)" },
+			{ "<leader>txL", "<cmd>Trouble loclist toggle<cr>", desc = "Loclist (Trouble)" },
+		},
+	},
 }

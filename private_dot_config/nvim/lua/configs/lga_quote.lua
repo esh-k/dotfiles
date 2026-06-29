@@ -1,28 +1,27 @@
--- live-grep-args helper: like its built-in quote_prompt, but if the prompt is
--- ALREADY quoted (begins with the quote char), it just appends the postfix
--- instead of wrapping/escaping the whole thing again. This lets you press
--- <C-g>/<M-g> repeatedly to chain multiple --iglob flags without breaking the
--- outermost quotes around the search term.
+-- Helper for telescope-live-grep-args: quote the search term (if not already
+-- quoted) and append a ripgrep flag, so <C-g> / <M-g> chain on one prompt line
+-- without nesting quotes.
+--
+--   <C-g>  ->  append ` --iglob `   (include glob)
+--   <M-g>  ->  append ` --iglob !`  (exclude glob)
+--
+-- If the term is already quoted we only append the flag (no re-quoting).
+
 local M = {}
 
-function M.quote_or_append(opts)
-  opts = vim.tbl_extend("force", { quote_char = '"', postfix = " ", trim = true }, opts or {})
+function M.quote_or_append(postfix)
   return function(prompt_bufnr)
-    local picker = require("telescope.actions.state").get_current_picker(prompt_bufnr)
-    local prompt = picker:_get_prompt()
-    if opts.trim then
-      prompt = vim.trim(prompt)
-    end
+    local action_state = require("telescope.actions.state")
+    local line = action_state.get_current_line() or ""
 
-    local new
-    if prompt:sub(1, 1) == opts.quote_char then
-      -- already quoted -> leave the outermost quotes, just add the flag
-      new = prompt .. opts.postfix
+    if line:match('"[^"]*"') then
+      -- already quoted: just append the flag text
+      local picker = action_state.get_current_picker(prompt_bufnr)
+      picker:set_prompt(line .. postfix)
     else
-      -- not quoted yet -> wrap the term, then add the flag
-      new = require("telescope-live-grep-args.helpers").quote(prompt, { quote_char = opts.quote_char }) .. opts.postfix
+      local lga_actions = require("telescope-live-grep-args.actions")
+      lga_actions.quote_prompt({ postfix = postfix })(prompt_bufnr)
     end
-    picker:set_prompt(new)
   end
 end
 

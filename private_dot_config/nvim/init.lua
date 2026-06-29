@@ -1,37 +1,31 @@
--- Entry point. Loosely mirrors the layout of the old NvChad-based config
--- (options / mappings / autocmds + lua/plugins + lua/configs) but is fully
--- standalone -- no starter framework.
+-- nvim_test — standalone config (no NvChad / starter framework).
+-- Run with: NVIM_APPNAME=nvim_test nvim
+-- Layout mirrors the old ~/.config/nvim: options / mappings / autocmds + lua/plugins/* + lua/configs/*
 
--- Leader must be set before lazy + plugins load so mappings register correctly.
 vim.g.mapleader = " "
+-- localleader is also <space>: grug-far / coq / lean / vimtex buffer-local maps use <localleader>
 vim.g.maplocalleader = " "
 
--- Point the python3 provider at the dedicated molten venv (pynvim/jupyter_client/
--- ipykernel live there, not in Mason). Guarded so a missing venv can't break the
--- provider. Recreate with:
---   python3 -m venv ~/.local/share/nvim_test/molten-venv
---   ~/.local/share/nvim_test/molten-venv/bin/pip install pynvim jupyter_client ipykernel
-local molten_py = vim.fn.stdpath "data" .. "/molten-venv/bin/python"
-if vim.fn.filereadable(molten_py) == 1 then
-  vim.g.python3_host_prog = molten_py
+-- python3 provider lives in the molten venv (notebooks / molten remote plugin)
+local molten_venv = vim.fn.stdpath("data") .. "/molten-venv"
+if vim.fn.isdirectory(molten_venv) == 1 then
+  vim.g.python3_host_prog = molten_venv .. "/bin/python"
 end
 
-require "options"
-
 -- bootstrap lazy.nvim
-local lazypath = vim.fn.stdpath "data" .. "/lazy/lazy.nvim"
-if not (vim.uv or vim.loop).fs_stat(lazypath) then
+local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
+if not vim.uv.fs_stat(lazypath) then
   local repo = "https://github.com/folke/lazy.nvim.git"
   vim.fn.system { "git", "clone", "--filter=blob:none", repo, "--branch=stable", lazypath }
 end
 vim.opt.rtp:prepend(lazypath)
 
-require("lazy").setup(require "configs.lazy")
-
+require "options"
 require "autocmds"
 
--- Mappings that don't belong to a specific plugin spec. Scheduled so they run
--- after startup (lets plugin-provided maps land first if needed).
+local lazy_config = require "configs.lazy"
+require("lazy").setup({ { import = "plugins" } }, lazy_config)
+
 vim.schedule(function()
   require "mappings"
 end)

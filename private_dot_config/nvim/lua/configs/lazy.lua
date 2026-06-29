@@ -1,12 +1,16 @@
--- lazy.nvim setup: import every spec under lua/plugins/ plus global options.
 return {
-  spec = {
-    { import = "plugins" },
-  },
-  defaults = { lazy = false },
+  defaults = { lazy = true },
   install = { colorscheme = { "catppuccin" } },
-  change_detection = { notify = false },
-  ui = { border = "rounded" },
+
+  ui = {
+    icons = {
+      ft = "",
+      lazy = "󰂠 ",
+      loaded = "",
+      not_loaded = "",
+    },
+  },
+
   performance = {
     rtp = {
       disabled_plugins = {
@@ -15,8 +19,8 @@ return {
         "tohtml",
         "tutor",
         "zipPlugin",
-        -- NB: do NOT disable netrwPlugin here -- nvim-tree hijacks netrw's
-        -- FileExplorer autocmd, which errors (E216) if netrw never loaded.
+        -- IMPORTANT: do NOT disable "netrwPlugin" — nvim-tree hijacks netrw's
+        -- FileExplorer autocmd and throws E216 into v:errmsg if netrw never loaded.
       },
     },
   },

@@ -1,25 +1,29 @@
--- Tabs for open files in the top bar (replaces NvChad's tabufline).
 return {
   {
     "akinsho/bufferline.nvim",
-    dependencies = { "nvim-tree/nvim-web-devicons" },
-    lazy = false, -- show the tab bar from startup
+    event = { "BufReadPost", "BufNewFile" },
+    dependencies = { "nvim-tree/nvim-web-devicons", "catppuccin/nvim" },
+    keys = {
+      { "]b", "<cmd>BufferLineCycleNext<CR>", desc = "next buffer/tab" },
+      { "[b", "<cmd>BufferLineCyclePrev<CR>", desc = "prev buffer/tab" },
+      { "<leader>x", "<cmd>bdelete<CR>", desc = "close buffer" },
+    },
     opts = function()
       return {
+        highlights = require("catppuccin.special.bufferline").get_theme(),
         options = {
-          mode = "buffers", -- one entry per open file
+          mode = "buffers",
           diagnostics = "nvim_lsp",
-          show_buffer_close_icons = true,
-          show_close_icon = false,
-          separator_style = "thin",
           always_show_bufferline = true,
-          -- keep the bar clear of the file tree
           offsets = {
-            { filetype = "NvimTree", text = "File Explorer", highlight = "Directory", separator = true },
+            {
+              filetype = "NvimTree",
+              text = "File Explorer",
+              highlight = "Directory",
+              separator = true,
+            },
           },
         },
-        -- catppuccin-themed highlights
-        highlights = require("catppuccin.special.bufferline").get_theme(),
       }
     end,
   },

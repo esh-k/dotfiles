@@ -1,53 +1,50 @@
 local opt = vim.opt
-local o = vim.o
 
-o.number = true
-o.relativenumber = false
-o.numberwidth = 2
-o.signcolumn = "yes"
-o.cursorline = true
-o.scrolloff = 8
-o.sidescrolloff = 8
+opt.number = true
+opt.relativenumber = true
+opt.signcolumn = "yes"
+opt.cursorline = true
+opt.linebreak = true
+opt.wrap = true
 
--- indentation
-o.expandtab = true
-o.shiftwidth = 2
-o.tabstop = 2
-o.softtabstop = 2
-o.smartindent = true
+opt.expandtab = true
+opt.shiftwidth = 2
+opt.tabstop = 2
+opt.softtabstop = 2
+opt.smartindent = true
 
--- search
-o.ignorecase = true
-o.smartcase = true
-o.hlsearch = true
-o.incsearch = true
+opt.ignorecase = true
+opt.smartcase = true
+opt.incsearch = true
+opt.hlsearch = true
 
--- ui / wrapping
-o.wrap = true -- soft-wrap long lines
-opt.linebreak = true -- wrap on word boundaries, not mid-word
-o.breakindent = true -- wrapped lines keep the original indentation
-o.termguicolors = true
-o.showmode = false -- statusline shows the mode
-o.splitright = true
-o.splitbelow = true
-o.mouse = "a"
-o.clipboard = "unnamedplus"
+opt.splitright = true
+opt.splitbelow = true
 
--- files / undo
-o.undofile = true
-o.swapfile = false
-o.updatetime = 250
-o.timeoutlen = 400 -- which-key popup delay
+opt.termguicolors = true
+opt.mouse = "a"
+opt.clipboard = "unnamedplus"
+opt.undofile = true
+opt.swapfile = false
+opt.updatetime = 250
+opt.timeoutlen = 400
+opt.scrolloff = 8
 
--- completion
-opt.completeopt = { "menu", "menuone", "noselect" }
+-- horizontal scrolling (used by nvim-tree to reach overflowing file names)
+opt.sidescroll = 1
 
--- sessions: which state Obsession/:mksession should persist.
-opt.sessionoptions = { "buffers", "curdir", "folds", "help", "tabpages", "winsize", "winpos", "terminal", "globals" }
+-- tabs/buffers in the top bar (bufferline)
+opt.showtabline = 2
 
--- diagnostics: inline virtual text + signs
-vim.diagnostic.config {
-  virtual_text = { prefix = "●" },
+-- Sessions (vim-obsession). `globals` is required so the grug-far session
+-- state (stored in a global) is serialized into Session.vim.
+opt.sessionoptions = "blank,buffers,curdir,folds,help,tabpages,winsize,winpos,terminal,globals"
+
+-- diagnostics
+vim.diagnostic.config({
+  virtual_text = true,
+  signs = true,
+  underline = true,
+  update_in_insert = false,
   severity_sort = true,
-  float = { border = "rounded", source = true },
-}
+})

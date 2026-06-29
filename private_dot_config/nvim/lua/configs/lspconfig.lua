@@ -1,52 +1,47 @@
--- LSP configuration using the Neovim 0.11+ native vim.lsp.config / enable API
--- (nvim-lspconfig ships the per-server defaults under its lsp/ runtime dir).
+-- Native LSP config (Neovim 0.11+): vim.lsp.config / vim.lsp.enable instead of
+-- the old require('lspconfig').xxx.setup{}. Server names follow nvim-lspconfig's
+-- lsp/ dir. Completion capabilities come from blink.cmp.
 
--- Completion capabilities advertised to servers (from blink.cmp)
-local capabilities = require("blink.cmp").get_lsp_capabilities()
-vim.lsp.config("*", { capabilities = capabilities })
+local ok_blink, blink = pcall(require, "blink.cmp")
+local capabilities = ok_blink and blink.get_lsp_capabilities()
+  or vim.lsp.protocol.make_client_capabilities()
 
--- Per-buffer keymaps, attached when any server connects ---------------------
-vim.api.nvim_create_autocmd("LspAttach", {
-  desc = "LSP keymaps",
-  callback = function(ev)
-    local map = function(keys, fn, desc)
-      vim.keymap.set("n", keys, fn, { buffer = ev.buf, desc = "LSP: " .. desc })
-    end
-    map("gd", vim.lsp.buf.definition, "Goto definition")
-    map("gD", vim.lsp.buf.declaration, "Goto declaration")
-    map("gi", vim.lsp.buf.implementation, "Goto implementation")
-    map("gr", vim.lsp.buf.references, "References")
-    map("K", vim.lsp.buf.hover, "Hover docs")
-    map("<leader>cr", vim.lsp.buf.rename, "Rename symbol")
-    map("<leader>ca", vim.lsp.buf.code_action, "Code action")
-    map("<leader>cd", vim.diagnostic.open_float, "Line diagnostics")
-    map("[d", function() vim.diagnostic.jump { count = -1, float = true } end, "Prev diagnostic")
-    map("]d", function() vim.diagnostic.jump { count = 1, float = true } end, "Next diagnostic")
-  end,
+-- defaults applied to every server
+vim.lsp.config("*", {
+  capabilities = capabilities,
 })
 
--- Server-specific overrides -------------------------------------------------
 vim.lsp.config("lua_ls", {
   settings = {
     Lua = {
-      runtime = { version = "LuaJIT" },
-      workspace = { checkThirdParty = false, library = { vim.env.VIMRUNTIME } },
       diagnostics = { globals = { "vim" } },
-      telemetry = { enable = false },
+      workspace = { checkThirdParty = false },
     },
   },
 })
 
-vim.lsp.config("clangd", {
-  cmd = { "clangd", "--background-index", "--clang-tidy" },
-})
+local servers = { "lua_ls", "clangd", "gopls", "pyright", "bashls", "jq_ls" }
+vim.lsp.enable(servers)
 
--- Enable the servers. Names follow nvim-lspconfig's lsp/ definitions.
-vim.lsp.enable {
-  "lua_ls",
-  "clangd",
-  "gopls",
-  "pyright",
-  "bashls",
-  "jq_ls",
-}
+-- keymaps on attach
+vim.api.nvim_create_autocmd("LspAttach", {
+  group = vim.api.nvim_create_augroup("lsp_attach_keys", { clear = true }),
+  callback = function(ev)
+    local function m(lhs, rhs, desc, mode)
+      vim.keymap.set(mode or "n", lhs, rhs, { buffer = ev.buf, desc = "lsp: " .. desc })
+    end
+    m("gd", vim.lsp.buf.definition, "goto definition")
+    m("gD", vim.lsp.buf.declaration, "goto declaration")
+    m("gi", vim.lsp.buf.implementation, "goto implementation")
+    m("gr", vim.lsp.buf.references, "references")
+    m("K", vim.lsp.buf.hover, "hover")
+    m("<leader>cr", vim.lsp.buf.rename, "rename")
+    m("<leader>ca", vim.lsp.buf.code_action, "code action", { "n", "v" })
+    m("[d", function()
+      vim.diagnostic.jump({ count = -1 })
+    end, "prev diagnostic")
+    m("]d", function()
+      vim.diagnostic.jump({ count = 1 })
+    end, "next diagnostic")
+  end,
+})

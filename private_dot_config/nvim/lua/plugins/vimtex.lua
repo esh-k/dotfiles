@@ -1,54 +1,31 @@
--- LaTeX editing with live PDF: VimTeX drives latexmk in continuous mode, so the
--- PDF recompiles on every save and the viewer updates live.
---
--- BACKEND (install yourself): a TeX distribution providing `latexmk` + a TeX
--- engine (e.g. MacTeX / BasicTeX: `brew install --cask mactex-no-gui` or
--- `brew install basictex` then `tlmgr install latexmk`), and a synctex-capable
--- PDF viewer. Default here is Skim on macOS: `brew install --cask skim`.
 return {
+  -- LaTeX editing + live PDF: latexmk continuous mode recompiles on every save;
+  -- viewer is Skim (macOS, SyncTeX). VimTeX owns .tex highlighting/conceal
+  -- (treesitter's latex highlighter is disabled for tex in plugins/init.lua).
+  -- BACKEND: a TeX distro with `latexmk` (MacTeX/BasicTeX) + Skim.
   {
     "lervag/vimtex",
-    ft = { "tex", "plaintex", "latex" },
+    ft = { "tex", "latex" },
     init = function()
-      vim.g.vimtex_view_method = "skim" -- macOS viewer with SyncTeX
+      vim.g.vimtex_view_method = "skim"
       vim.g.vimtex_compiler_method = "latexmk"
-      vim.g.vimtex_compiler_latexmk = {
-        continuous = 1, -- recompile on save -> live PDF updates
-        options = {
-          "-pdf",
-          "-synctex=1",
-          "-interaction=nonstopmode",
-          "-file-line-error",
-          "-shell-escape",
-        },
-      }
-      vim.g.vimtex_quickfix_mode = 0 -- don't steal focus to quickfix on warnings
-      vim.g.vimtex_mappings_enabled = 1 -- default <localleader>l... proof/compile maps
-      -- VimTeX owns .tex highlighting + conceal; the treesitter latex highlighter
-      -- is disabled for tex (see plugins/init.lua treesitter config) to avoid the
-      -- conflict.
-    end,
-    config = function()
-      -- Auto-start continuous compilation (live PDF on save) when latexmk exists.
-      local function autostart(buf)
-        if vim.b[buf].vimtex_autostarted or vim.fn.executable "latexmk" ~= 1 then
-          return
-        end
-        vim.b[buf].vimtex_autostarted = true
-        vim.schedule(function()
-          pcall(vim.cmd, "VimtexCompile")
-        end)
-      end
+      vim.g.vimtex_compiler_latexmk = { continuous = 1 }
+      vim.g.vimtex_mappings_enabled = 1
+      vim.g.vimtex_quickfix_mode = 0
+
+      -- auto-start continuous compilation when opening a .tex (guarded on
+      -- latexmk being installed, so it safely no-ops otherwise)
       vim.api.nvim_create_autocmd("FileType", {
-        pattern = { "tex", "plaintex", "latex" },
-        callback = function(ev)
-          autostart(ev.buf)
+        group = vim.api.nvim_create_augroup("vimtex_autostart", { clear = true }),
+        pattern = "tex",
+        callback = function()
+          if vim.fn.executable("latexmk") == 1 then
+            vim.schedule(function()
+              pcall(vim.cmd, "VimtexCompile")
+            end)
+          end
         end,
       })
-      -- the buffer that triggered loading already fired FileType
-      if vim.tbl_contains({ "tex", "plaintex", "latex" }, vim.bo.filetype) then
-        autostart(vim.api.nvim_get_current_buf())
-      end
     end,
   },
 }
