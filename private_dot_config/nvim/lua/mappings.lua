@@ -1,61 +1,45 @@
-require "nvchad.mappings"
-
--- add yours here
-
 local map = vim.keymap.set
 
--- Bad since doesn't support repating f commands
--- map("n", ";", ":", { desc = "CMD enter command mode" })
-map("i", "jk", "<ESC>")
-map("n", "<C-h>", "<cmd> TmuxNavigateLeft<CR>", { desc = "window left" })
-map("n", "<C-l>", "<cmd> TmuxNavigateRight<CR>", { desc = "window right" })
-map("n", "<C-j>", "<cmd> TmuxNavigateDown<CR>", { desc = "window down" })
-map("n", "<C-k>", "<cmd> TmuxNavigateUp<CR>", { desc = "window up" })
+-- General -------------------------------------------------------------------
+map("i", "jk", "<ESC>", { desc = "Exit insert mode" })
+map("n", "<Esc>", "<cmd>nohlsearch<cr>", { desc = "Clear search highlight" })
+map("n", "<leader>w", "<cmd>w<cr>", { desc = "Save file" })
+-- Ctrl-S to save in normal/insert/visual (stays in the current mode)
+map({ "n", "i", "v" }, "<C-s>", "<cmd>w<cr>", { desc = "Save file" })
+map("n", "<leader>q", "<cmd>q<cr>", { desc = "Quit window" })
 
-map("n", "j", "gj", { desc = "move down between wrapped lines" })
-map("n", "k", "gk", { desc = "move up between wrapped lines" })
-map("v", "j", "gj", { desc = "move down between wrapped lines" })
-map("v", "k", "gk", { desc = "move up between wrapped lines" })
+-- Move through wrapped lines naturally
+map({ "n", "v" }, "j", "gj", { desc = "Down (wrapped lines)" })
+map({ "n", "v" }, "k", "gk", { desc = "Up (wrapped lines)" })
 
--- Override Tab mapping to use different keys so C-i can work for jump forward
--- C-i and Tab are the same keycode, so we need to change Tab to something else
-if require("nvconfig").ui.tabufline.enabled then
-  -- Unmap Tab from buffer navigation
-  vim.keymap.del("n", "<Tab>")
-  vim.keymap.del("n", "<S-Tab>")
-end
+-- Keep selection when indenting
+map("v", "<", "<gv", { desc = "Indent left" })
+map("v", ">", ">gv", { desc = "Indent right" })
 
-vim.keymap.set("n", "<C-M-f>",
-  function()
-    require("conform").format({
-    async = true,
-    lsp_fallback = true,
-  })
-  end,
-  { noremap = true, silent=true}
-)
+-- Tmux-aware window navigation (handled by vim-tmux-navigator) ---------------
+map("n", "<C-h>", "<cmd>TmuxNavigateLeft<cr>", { desc = "Window/pane left" })
+map("n", "<C-l>", "<cmd>TmuxNavigateRight<cr>", { desc = "Window/pane right" })
+map("n", "<C-j>", "<cmd>TmuxNavigateDown<cr>", { desc = "Window/pane down" })
+map("n", "<C-k>", "<cmd>TmuxNavigateUp<cr>", { desc = "Window/pane up" })
 
-vim.keymap.set('n', '<F5>', function() require('dap').continue() end)
-    vim.keymap.set('n', '<F10>', function() require('dap').step_over() end)
-    vim.keymap.set('n', '<F11>', function() require('dap').step_into() end)
-    vim.keymap.set('n', '<F12>', function() require('dap').step_out() end)
-    vim.keymap.set('n', '<Leader>b', function() require('dap').toggle_breakpoint() end)
-    vim.keymap.set('n', '<Leader>B', function() require('dap').set_breakpoint() end)
-    vim.keymap.set('n', '<Leader>lp', function() require('dap').set_breakpoint(nil, nil, vim.fn.input('Log point message: ')) end)
-    vim.keymap.set('n', '<Leader>dr', function() require('dap').repl.open() end)
-    vim.keymap.set('n', '<Leader>dl', function() require('dap').run_last() end)
-    vim.keymap.set({'n', 'v'}, '<Leader>dh', function()
-      require('dap.ui.widgets').hover()
-    end)
-    vim.keymap.set({'n', 'v'}, '<Leader>dp', function()
-      require('dap.ui.widgets').preview()
-    end)
-    vim.keymap.set('n', '<Leader>df', function()
-      local widgets = require('dap.ui.widgets')
-      widgets.centered_float(widgets.frames)
-    end)
-    vim.keymap.set('n', '<Leader>ds', function()
-      local widgets = require('dap.ui.widgets')
-      widgets.centered_float(widgets.scopes)
-    end)
--- map({ "n", "i", "v" }, "<C-s>", "<cmd> w <cr>")
+-- Buffers / tabs ------------------------------------------------------------
+-- (Tab is left unmapped so it keeps working as <C-i> / jump-forward.)
+map("n", "]b", "<cmd>BufferLineCycleNext<cr>", { desc = "Next buffer (tab)" })
+map("n", "[b", "<cmd>BufferLineCyclePrev<cr>", { desc = "Previous buffer (tab)" })
+map("n", "<leader>x", "<cmd>bdelete<cr>", { desc = "Close buffer" })
+
+-- Comments (built-in gc/gcc commenting) -------------------------------------
+map("n", "<leader>/", "gcc", { remap = true, desc = "Toggle comment line" })
+map("x", "<leader>/", "gc", { remap = true, desc = "Toggle comment selection" })
+
+-- Sessions (vim-obsession) --------------------------------------------------
+map("n", "<leader>so", "<cmd>Obsession<cr>", { desc = "Toggle session tracking (Obsession)" })
+
+-- Formatting (conform) ------------------------------------------------------
+map("n", "<C-M-f>", function()
+  require("conform").format { async = true, lsp_format = "fallback" }
+end, { desc = "Format buffer" })
+map("n", "<leader>cf", function()
+  require("conform").format { async = true, lsp_format = "fallback" }
+end, { desc = "Format buffer" })
+map("n", "<leader>uf", "<cmd>FormatToggle<cr>", { desc = "Toggle autoformat (session)" })
