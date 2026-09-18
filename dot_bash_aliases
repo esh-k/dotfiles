@@ -87,3 +87,10 @@ rmvenv() {
     fi
 }
 # <<< venv wrapper
+
+# >>> kitty shortcuts
+# kitty image view
+function image-cat() {
+    kitten icat "$@"
+}
+# <<< kitty shortcuts
