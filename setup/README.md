@@ -3,7 +3,7 @@
 Sets up an Ubuntu machine with these dotfiles and the tools they depend on.
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/ekanchv/dotfiles/main/setup/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/esh-k/dotfiles/main/setup/install.sh | bash
 ```
 
 The headless layer always installs; you're asked whether to add the GUI layer.
