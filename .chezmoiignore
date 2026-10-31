@@ -1,0 +1,9 @@
+# Paths here are target paths (relative to ~), not source paths.
+
+# Machine installer: lives in this repo, but isn't a dotfile.
+setup
+setup/**
+
+# Vim session files are per-machine state.
+Session.vim
+**/Session.vim
