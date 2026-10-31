@@ -1,6 +1,9 @@
 set-option -sa terminal-overrides ",xterm*:Tc"
 set -g mouse on
 
+# TODO: color for ghostty
+set -as terminal-features ",xterm-ghostty:RGB"
+
 unbind C-b
 set -g prefix C-Space
 bind C-Space send-prefix
@@ -75,10 +78,13 @@ set-window-option -g mode-keys vi
 # keybindings
 bind-key -T copy-mode-vi v send-keys -X begin-selection
 bind-key -T copy-mode-vi C-v send-keys -X rectangle-toggle
+{{- if eq .chezmoi.os "darwin" }}
+bind-key -T copy-mode-vi y send-keys -X copy-pipe-no-clear 'pbcopy'
+bind-key -T copy-mode-vi MouseDragEnd1Pane send-keys -X copy-pipe-no-clear 'pbcopy'
+{{- else }}
 bind-key -T copy-mode-vi y send-keys -X copy-pipe-no-clear 'xclip -selection clipboard -in'
 bind-key -T copy-mode-vi MouseDragEnd1Pane send-keys -X copy-pipe-no-clear 'xclip -selection clipboard -in'
-# bind-key -T copy-mode-vi y send-keys -X copy-pipe-no-clear 'pbcopy'
-# bind-key -T copy-mode-vi MouseDragEnd1Pane send-keys -X copy-pipe-no-clear "pbcopy"
+{{- end }}
 
 # remove bindings
 bind-key -T copy-mode-vi MouseDown1Pane select-pane \; send-keys -X clear-selection
@@ -107,3 +113,17 @@ set -g pane-border-indicators arrows
 set -g pane-border-format "#{pane_current_command}@#{pane_current_path}#{?#{||:#{==:#{pane_current_command},claude},#{m/r:^[0-9]+\.[0-9]+\.[0-9]+$,#{pane_current_command}}}, [#(~/.tmux/claude-session-name.sh #{pane_id})],}"
 set -g status-interval 5
 set -g pane-border-status top
+
+# --- Fork-free override for vim-tmux-navigator's C-h/j/k/l ------------------
+# The plugin's own bindings (loaded by tpm above) use `if-shell` *without*
+# -F, which forks sh -> ps -> grep on every single keystroke to detect
+# whether the pane is running vim. That's cheap on Linux but pays a real
+# per-exec tax under macOS EDR (SentinelOne authorizes every process spawn),
+# which is why navigation only feels slow here and not on Ubuntu. `if-shell
+# -F` evaluates a tmux format string server-side instead, so the same check
+# costs zero forks. Must stay after the tpm `run` line so these bindings win.
+set -g @vim_pane_pattern '^(\S+/)?g?\.?(view|l?n?vim?x?|fzf)(diff)?(-wrapped)?$'
+bind-key -n C-h if-shell -F "#{m/r:#{@vim_pane_pattern},#{pane_current_command}}" "send-keys C-h" "select-pane -L"
+bind-key -n C-j if-shell -F "#{m/r:#{@vim_pane_pattern},#{pane_current_command}}" "send-keys C-j" "select-pane -D"
+bind-key -n C-k if-shell -F "#{m/r:#{@vim_pane_pattern},#{pane_current_command}}" "send-keys C-k" "select-pane -U"
+bind-key -n C-l if-shell -F "#{m/r:#{@vim_pane_pattern},#{pane_current_command}}" "send-keys C-l" "select-pane -R"

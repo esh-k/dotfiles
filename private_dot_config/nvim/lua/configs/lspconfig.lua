@@ -19,7 +19,9 @@ vim.lsp.config("lua_ls", {
 	},
 })
 
-local servers = { "lua_ls", "clangd", "gopls", "pyright", "bashls", "jq_ls" }
+require("configs.cspell").setup()
+
+local servers = { "lua_ls", "clangd", "gopls", "pyright", "bashls", "jq_ls", "cspell_ls" }
 vim.lsp.enable(servers)
 
 -- keymaps on attach
