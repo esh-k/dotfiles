@@ -41,6 +41,8 @@ install_apt_packages() {
         git build-essential cmake pkg-config autoconf automake libtool gettext \
         unzip xz-utils file less locales sudo procps \
         ripgrep fd-find fzf jq imagemagick luarocks \
+        `# cairosvg (molten svg output) loads libcairo at runtime` \
+        libcairo2 \
         `# pyenv python build deps` \
         libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev \
         tk-dev libxml2-dev libxmlsec1-dev libffi-dev liblzma-dev \
