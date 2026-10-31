@@ -15,11 +15,13 @@ return {
 						"pyright",
 						"bash-language-server",
 						"jq-lsp",
+						"cspell-lsp",
 						-- formatters
 						"stylua",
 						"jq",
 						"shfmt",
 						"ruff",
+						"clang-format",
 						-- debug adapter
 						"codelldb",
 						-- notebooks
