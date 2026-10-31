@@ -10,7 +10,7 @@
 # Lives in the dotfiles repo under setup/ (excluded from chezmoi via .chezmoiignore).
 set -euo pipefail
 
-DOTFILES_REPO="${DOTFILES_REPO:-https://github.com/ekanchv/dotfiles.git}"
+DOTFILES_REPO="${DOTFILES_REPO:-https://github.com/esh-k/dotfiles.git}"
 DOTFILES_REF="${DOTFILES_REF:-main}"
 SETUP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" 2>/dev/null && pwd || true)"
 
